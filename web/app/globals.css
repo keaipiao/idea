@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* IdeaBox 设计 token — 镜像 docs/_UI设计规范.md
+ * Tailwind 4 @theme 块自动生成 CSS variables + bg-[var(--xxx)] / text-[var(--xxx)] 等任意值类
+ * PR-3 ADR-7 + ADR-22 + ADR-18
+ */
+@theme {
+  /* 颜色(_UI设计规范 § 2)— 8 色 token,严禁组件 hardcode hex */
+  --color-primary: #1677ff;
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f5f7fa;
+  --color-text-primary: #1d2129;
+  --color-text-secondary: #86909c;
+  --color-border: #e5e6eb;
+  --color-success: #00b42a;
+  --color-danger: #f53f3f;
+
+  /* 圆角(_UI设计规范 § 4)— 3 档,禁 rounded-xl/2xl/3xl */
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --radius-l: 12px;
+
+  /* 间距(_UI设计规范 § 5)— 5 档 */
+  --space-xs: 4px;
+  --space-s: 8px;
+  --space-m: 12px;
+  --space-l: 16px;
+  --space-xl: 24px;
+
+  /* 字体(PR-3 ADR-22)— Noto Sans SC self-host,fallback PingFang/雅黑/system
+   * --font-noto-sc 由 layout.tsx 的 next/font/google 注入
+   */
+  --font-sans: var(--font-noto-sc), "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+}
+
+/* prefers-reduced-motion(PR-3 § 3.9 a11y) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  /* 防字体跨平台尺寸跳变(Noto Sans SC 加载前用 system fallback 时尺寸尽量贴近) */
+  font-size: 16px;
+}
+
+body {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 细微的光效背景(主区右上角)— 让平面有空间感,但克制 */
+main {
+  position: relative;
+}
+
+/* 按钮 / 链接 hover 过渡更顺 */
+button {
+  transition: opacity 150ms ease, transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+/* 焦点环(PR-3 § 3.9)— 所有 focusable 元素 :focus-visible 显环 */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
+}
+
+/* 全局 reset 想法 textarea 滚动条克制 */
+textarea {
+  resize: none;
+}

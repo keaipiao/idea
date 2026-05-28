@@ -22,15 +22,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class CorsConfig {
 
-    @Bean
+    @Bean(name = "corsConfigurationSource")
     @Profile("dev")
     public CorsConfigurationSource devCorsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of(
-                "http://localhost:3000",   // Next.js dev
-                "http://localhost:5173",   // Vite dev
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:5173"
+        // PR-3 阶段 5 联调 hotfix:用 allowedOriginPatterns 接受任意 localhost / 127.0.0.1 端口
+        // bean name 显式 "corsConfigurationSource" 让 Spring Security CorsConfigurer 优先按 name 拿
+        // (Next.js dev 默认 3000,被占时 -p 自动切到 3001/3002/...;Vite 默认 5173 类似)
+        // dev profile 仅本机使用,任意 port 风险可接受;prod profile 仍需显式白名单。
+        cfg.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*"
         ));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // 显式枚举 + allowCredentials=true(CORS spec 禁止 "*" + credentials 组合)

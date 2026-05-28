@@ -9,7 +9,9 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: org.postgresql.Driver
-    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/ideabox}
+    # 2026-05-28 PR-3 默认端口 5432 → 25432 避本机其他 PG 实例冲突
+    # prod 部署仍可通过 DATASOURCE_URL 环境变量覆盖
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:25432/ideabox}
     username: ${POSTGRES_USER:ideabox}
     # 密码无默认值,缺失即 fail-fast 启动失败(防止源码默认值进生产)
     password: ${POSTGRES_PASSWORD}

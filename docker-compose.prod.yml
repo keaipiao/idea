@@ -1,0 +1,85 @@
+# IdeaBox 生产环境 stack
+# 用法:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# 三服务:postgres + backend + web,经 nginx 反代统一入口 80
+# 详 docs/01-想法记录MVP/PR-3/01-设计.md § 4.7
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ideabox-postgres-prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      TZ: Asia/Shanghai
+    volumes:
+      - ideabox_pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # 生产 PG 不对外暴露端口,仅容器网内访问
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ideabox-backend-prod
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      IDEABOX_JWT_SECRET: ${IDEABOX_JWT_SECRET}
+      IDEABOX_JWT_EXPIRATION_HOURS: ${IDEABOX_JWT_EXPIRATION_HOURS:-168}
+      TZ: Asia/Shanghai
+    # /review P1-N 修法:backend 加 healthcheck,让 nginx depends_on 真等就绪
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    # 生产 backend 不对外暴露端口,仅经 nginx /api 反代
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        # 经 nginx 反代,前端用相对路径(无 CORS 问题)
+        NEXT_PUBLIC_API_BASE_URL: /api
+        # /review P1-N 修法:默认 none(不自动登录,前端显示占位页),不默认 wechat 避免误以为已上 PR-4
+        # PR-3 不部署 prod,占位页;PR-4 上线时手动 AUTH_MODE=wechat
+        NEXT_PUBLIC_AUTH_MODE: ${AUTH_MODE:-none}
+    container_name: ideabox-web-prod
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    # 不暴露端口,仅经 nginx / 反代
+
+  nginx:
+    image: nginx:alpine
+    container_name: ideabox-nginx-prod
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+      - backend
+    restart: unless-stopped
+
+volumes:
+  ideabox_pgdata_prod:
+    name: ideabox_pgdata_prod

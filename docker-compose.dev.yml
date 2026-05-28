@@ -18,7 +18,9 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
       TZ: Asia/Shanghai
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # 改用 25432 避与本机其他 PG 实例冲突;容器内仍 5432(PG 默认)
+      # 同步改:.env.example POSTGRES_PORT / application-dev.yml jdbc url / web/.env.example
+      - "${POSTGRES_PORT:-25432}:5432"
     volumes:
       # 用 named volume 而非 bind mount。Windows NTFS bind mount 让 PG fsync 性能极差
       # (WSL2 + 9p 协议跨主机文件系统,fsync 比 Linux 慢 10-100x)

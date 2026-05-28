@@ -26,7 +26,8 @@ public abstract class IntegrationTestBase {
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry r) {
-        r.add("spring.datasource.url", () -> "jdbc:postgresql://localhost:5432/ideabox_test");
+        // 2026-05-28 PR-3 改 5432 → 25432 匹配 docker-compose.dev.yml 新端口
+        r.add("spring.datasource.url", () -> "jdbc:postgresql://localhost:25432/ideabox_test");
         r.add("spring.datasource.username", () -> "ideabox");
         r.add("spring.datasource.password", () -> "ideabox_dev_password");
 
