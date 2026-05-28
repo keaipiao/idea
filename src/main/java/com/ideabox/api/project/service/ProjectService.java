@@ -25,7 +25,9 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public IPage<Project> listByUser(Long userId, long page, long size) {
-        Page<Project> p = Page.of(page, size);
+        Page<Project> p = Page.of(
+                com.ideabox.api.common.PageResult.normalizePage(page),
+                com.ideabox.api.common.PageResult.normalizeSize(size));
         LambdaQueryWrapper<Project> q = new LambdaQueryWrapper<Project>()
                 .eq(Project::getUserId, userId)
                 .orderByAsc(Project::getSortOrder)

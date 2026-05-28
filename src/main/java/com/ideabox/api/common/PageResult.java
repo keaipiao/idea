@@ -15,6 +15,9 @@ import lombok.Data;
 @Builder
 public class PageResult<T> {
 
+    /** 单次请求允许的最大 size,防 `?size=10000` 拖垮 */
+    public static final long MAX_SIZE = 200L;
+
     /** 当前页记录 */
     private List<T> records;
     /** 总数 */
@@ -35,5 +38,15 @@ public class PageResult<T> {
                 .size(p.getSize())
                 .pages(p.getPages())
                 .build();
+    }
+
+    /** 规范化分页参数,防 ?page=0 / ?size=10000 等异常输入 */
+    public static long normalizePage(long page) {
+        return page < 1 ? 1 : page;
+    }
+
+    public static long normalizeSize(long size) {
+        if (size < 1) return 1;
+        return Math.min(size, MAX_SIZE);
     }
 }

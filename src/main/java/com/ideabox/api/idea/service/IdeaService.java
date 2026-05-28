@@ -32,7 +32,9 @@ public class IdeaService {
         // 校验项目归属
         projectService.getOwnedById(projectId, userId);
 
-        Page<Idea> p = Page.of(page, size);
+        Page<Idea> p = Page.of(
+                com.ideabox.api.common.PageResult.normalizePage(page),
+                com.ideabox.api.common.PageResult.normalizeSize(size));
         LambdaQueryWrapper<Idea> q = new LambdaQueryWrapper<Idea>()
                 .eq(Idea::getProjectId, projectId);
         if (completed != null) {
