@@ -43,12 +43,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String HEADER = "Authorization";
     private static final String PREFIX = "Bearer ";
 
-    /** 不需要鉴权的路径前缀 */
-    private static final List<String> WHITELIST = List.of(
-            "/api/auth/login/",
-            "/actuator/",
-            "/druid/",
+    /**
+     * 不需要鉴权的精确路径白名单。
+     * <p>
+     * 不用前缀通配 - 防止新增 /api/auth/login/* 自动免鉴权。
+     * /actuator 仅放行 health(其他端点走 JWT)。/druid 仅 dev profile 启用,前缀放行配合 Druid 自身 allow 列表。
+     */
+    private static final List<String> EXACT_WHITELIST = List.of(
+            "/api/auth/login/dev",
+            "/api/auth/login/mp",
+            "/actuator/health",
             "/error"
+    );
+
+    private static final List<String> PREFIX_WHITELIST = List.of(
+            "/actuator/health/",  // health 子端点(liveness/readiness)
+            "/druid/"             // Druid 监控页,内部 allow=127.0.0.1 + 用户名/密码兜底
     );
 
     private final JwtUtil jwtUtil;
@@ -61,8 +71,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String path = pathHelper.getPathWithinApplication(req);
 
-        // 白名单 + 非 /api/ 路径放行(后者交给 Spring Security 兜底,允许 OPTIONS 预检等)
-        if (isWhitelisted(path) || !path.startsWith("/api/")) {
+        // 白名单 + OPTIONS 预检放行(CORS 预检不带 token)
+        if ("OPTIONS".equals(req.getMethod()) || isWhitelisted(path)) {
             chain.doFilter(req, resp);
             return;
         }
@@ -74,20 +84,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring(PREFIX.length()).trim();
+        // 只 try 解析 token 这一小段,不裹 chain.doFilter
+        // 否则会吞掉下游业务抛的 IllegalArgumentException 误判为 JWT_INVALID
+        Long userId;
         try {
-            Long userId = jwtUtil.parseUserId(token);
-            UserContext.setUserId(userId);
-
-            // 同步给 Spring Security,使后续 @PreAuthorize 等正常工作(预留)
-            var auth = new UsernamePasswordAuthenticationToken(userId, null, List.of());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-
-            chain.doFilter(req, resp);
+            userId = jwtUtil.parseUserId(token);
         } catch (ExpiredJwtException ex) {
             writeResult(resp, ResultCode.JWT_EXPIRED);
+            return;
         } catch (JwtException | IllegalArgumentException ex) {
-            log.debug("[JWT] 解析失败: {}", ex.getMessage());
+            log.debug("[JWT] 解析失败: {}", ex.getClass().getSimpleName());
             writeResult(resp, ResultCode.JWT_INVALID);
+            return;
+        }
+
+        try {
+            UserContext.setUserId(userId);
+            var auth = new UsernamePasswordAuthenticationToken(userId, null, List.of());
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            chain.doFilter(req, resp);
         } finally {
             UserContext.clear();
             SecurityContextHolder.clearContext();
@@ -95,7 +110,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean isWhitelisted(String path) {
-        for (String prefix : WHITELIST) {
+        if (EXACT_WHITELIST.contains(path)) {
+            return true;
+        }
+        for (String prefix : PREFIX_WHITELIST) {
             if (path.startsWith(prefix)) {
                 return true;
             }

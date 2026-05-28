@@ -3,6 +3,8 @@ package com.ideabox.api.common.jwt;
 import com.ideabox.api.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -13,6 +15,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * JWT 签发 + 解析工具。jjwt 0.12.x API。
+ * <p>
+ * 关键点:
+ * <ul>
+ *   <li>secret bytes 显式 UTF-8 编码,避免 Windows GBK / Linux UTF-8 跨平台不兼容</li>
+ *   <li>SecretKey 实例 cache 为字段,避免每次签发/解析都重建</li>
+ * </ul>
  */
 @Component
 @RequiredArgsConstructor
@@ -21,9 +29,13 @@ public class JwtUtil {
     private static final String CLAIM_USER_ID = "uid";
 
     private final JwtProperties props;
+    private SecretKey signingKey;
 
-    private SecretKey signingKey() {
-        return new SecretKeySpec(props.getSecret().getBytes(), "HmacSHA256");
+    @PostConstruct
+    public void init() {
+        // 显式 UTF-8 编码,跨平台一致
+        this.signingKey = new SecretKeySpec(
+                props.getSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     }
 
     /**
@@ -41,7 +53,7 @@ public class JwtUtil {
                 .claim(CLAIM_USER_ID, userId)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
-                .signWith(signingKey(), Jwts.SIG.HS256)
+                .signWith(signingKey, Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -60,7 +72,7 @@ public class JwtUtil {
      */
     public Long parseUserId(String token) {
         Claims claims = Jwts.parser()
-                .verifyWith(signingKey())
+                .verifyWith(signingKey)
                 .requireIssuer(props.getIssuer())
                 .build()
                 .parseSignedClaims(token)

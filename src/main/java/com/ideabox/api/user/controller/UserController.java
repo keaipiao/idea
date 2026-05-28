@@ -2,7 +2,7 @@ package com.ideabox.api.user.controller;
 
 import com.ideabox.api.common.Result;
 import com.ideabox.api.common.UserContext;
-import com.ideabox.api.user.entity.User;
+import com.ideabox.api.user.dto.UserVO;
 import com.ideabox.api.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,10 +16,10 @@ public class UserController {
 
     private final UserService userService;
 
-    /** 获取当前登录用户信息 */
+    /** 获取当前登录用户信息 - 永远返回 UserVO 不暴露 unionId/openId */
     @GetMapping("/me")
-    public Result<User> me() {
+    public Result<UserVO> me() {
         Long uid = UserContext.requireUserId();
-        return Result.ok(userService.getById(uid));
+        return Result.ok(UserVO.fromEntity(userService.getById(uid)));
     }
 }

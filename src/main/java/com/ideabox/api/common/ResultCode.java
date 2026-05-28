@@ -23,7 +23,9 @@ public enum ResultCode {
 
     RESOURCE_NOT_FOUND(404001, 404, "资源不存在"),
 
-    NOT_IMPLEMENTED(501000, 501, "尚未实现"),
+    // HTTP 200 + 业务码 501000:走双层契约,前端只解析 Result.code
+    // 不用 HTTP 501 防止反向代理 / APM 误判 server error
+    NOT_IMPLEMENTED(501000, 200, "尚未实现"),
 
     SYSTEM_ERROR(500000, 500, "系统内部异常");
 

@@ -1,13 +1,19 @@
 # dev profile - 本地开发环境
 
 spring:
+  # dev 期跑 base + dev-only seed 两个目录
+  flyway:
+    locations: classpath:db/migration,classpath:db/migration-dev
+    baseline-on-migrate: true
+
   # Druid 监控开关(dev only)
   datasource:
     druid:
       stat-view-servlet:
         enabled: true
-        login-username: dev
-        login-password: dev
+        # 用环境变量,默认值仅 dev 本机方便。生产/prod profile 已禁该 servlet
+        login-username: ${DRUID_USER:dev}
+        login-password: ${DRUID_PASSWORD:dev}
         # 仅允许 localhost 访问 Druid 监控页(127.0.0.1 / ::1)
         allow: 127.0.0.1,::1
         deny: ""

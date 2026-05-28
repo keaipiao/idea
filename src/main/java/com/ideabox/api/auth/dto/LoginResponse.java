@@ -1,6 +1,6 @@
 package com.ideabox.api.auth.dto;
 
-import com.ideabox.api.user.entity.User;
+import com.ideabox.api.user.dto.UserVO;
 import java.time.Instant;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +16,6 @@ public class LoginResponse {
     private String token;
     /** 过期时刻 ISO-8601 */
     private Instant expiresAt;
-    /** 用户信息 */
-    private User user;
+    /** 用户视图(不含 unionId / openId 等敏感字段) */
+    private UserVO user;
 }

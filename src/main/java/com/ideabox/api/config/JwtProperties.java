@@ -1,6 +1,7 @@
 package com.ideabox.api.config;
 
 import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -24,7 +25,7 @@ public class JwtProperties {
 
     @PostConstruct
     void validate() {
-        if (secret == null || secret.getBytes().length < 32) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException(
                     "ideabox.jwt.secret 必须配置且 >= 32 字节(HS256 安全要求)。"
                             + "请设置环境变量 IDEABOX_JWT_SECRET,使用 openssl rand -base64 48 生成");

@@ -11,23 +11,31 @@ spring:
     driver-class-name: org.postgresql.Driver
     url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/ideabox}
     username: ${POSTGRES_USER:ideabox}
-    password: ${POSTGRES_PASSWORD:ideabox_dev_password}
+    # 密码无默认值,缺失即 fail-fast 启动失败(防止源码默认值进生产)
+    password: ${POSTGRES_PASSWORD}
 
   # Flyway 数据库迁移
   flyway:
     enabled: true
+    # 注意:dev profile 额外加 db/migration-dev 跑 seed dev 用户;prod 只跑 db/migration
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    # 基础默认 false。dev profile 显式打开 baseline-on-migrate=true 加速本地;
+    # prod 保持 false 强制手工 baseline 防止跳过历史 migration
+    baseline-on-migrate: false
 
-  # Jackson 时间格式
+  # Jackson 时间格式 + 锁 Result 包装的 data 字段必出契约
   jackson:
     date-format: yyyy-MM-dd'T'HH:mm:ss
     time-zone: Asia/Shanghai
+    # 锁住"data 字段始终存在(null 也输出)"契约,防全局 Inclusion 配置漂移
+    default-property-inclusion: always
 
-  # Web MVC 错误页配置
+  # Web MVC 错误页 + 让 404 抛 NoHandlerFoundException 进入 GlobalExceptionHandler
   web:
     resources:
       add-mappings: false
+  mvc:
+    throw-exception-if-no-handler-found: true
 
 server:
   port: 8080
@@ -47,6 +55,9 @@ management:
       show-details: when-authorized
 
 # MyBatis-Plus
+# 注意:MVP 不用软删,全部硬删 + 外键级联。
+# 删除原本悬空的 logic-delete-* 三行配置(实体/表都无 deleted_at 字段,
+# 留着是埋雷 - 后续 PR 任意 entity 加 deletedAt 字段会瞬间让所有查询变软删语义)。
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
@@ -54,9 +65,6 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
-      logic-delete-field: deletedAt
-      logic-delete-value: "NOW()"
-      logic-not-delete-value: "NULL"
 
 # IdeaBox 自定义配置
 ideabox:

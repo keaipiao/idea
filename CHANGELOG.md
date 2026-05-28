@@ -4,6 +4,52 @@
 
 ---
 
+## [v0.1.1] — 2026-05-28 · PR-1 hotfix(/review 暴露 P0/P1 系统修复)
+
+阶段 7 用户 call out 后真跑 `/review` skill,4 个 specialist 暴露 7 P0 + 11 P1。原"0 P0/P1"自评是误报(未实际尝试 skill 即跳过)。
+
+### Security
+
+- **CRITICAL**:UserController.me + LoginResponse.user 不再直接返 User entity,新 UserVO 不含 unionId/openIdMp/openIdWeb
+- **CRITICAL**:删 application.yml 全局 logic-delete-* 配置(entity/schema 无对应字段,留着是埋雷)
+- **CRITICAL**:V2 seed dev user 移到 db/migration-dev/,prod 不跑(不再有 prod 幽灵账号)
+- **CRITICAL**:POSTGRES_PASSWORD 删默认值 fail-fast;Druid 凭据走 env var
+- **CRITICAL**:JwtUtil secret 显式 UTF-8 编码(跨平台 token 一致)
+- **CRITICAL**:JwtAuthFilter try 块缩到只裹 parseUserId,不再吞下游业务 IllegalArgumentException
+- **CRITICAL**:SecurityConfig anyRequest().authenticated();登录 WHITELIST 精确路径
+
+### Fixed
+
+- ProjectUpdateReq.name / IdeaUpdateReq.content 加 @Pattern 拒空白字符串
+- ReorderReq.ids @Size(max=500) 防 DoS
+- DevLoginRequest.userId @Positive 拦负数
+- ProjectService.update/delete 用 LambdaUpdateWrapper 钉死 user_id 防 TOCTOU
+- mpLogin 改 HTTP 200 + Result.code=501000(走业务码契约)
+- 404 路径走 Result 包装(加 NoHandlerFoundException handler)
+- CorsConfig 暴露 CorsConfigurationSource bean,SecurityConfig.cors() 真接管
+- reorder 错误消息去 id 防 IDOR
+
+### Changed
+
+- Result 加独立 errors 字段,@Valid 失败 data=null + errors=[字段错误]
+- V3__alter_foreign_keys_restrict.sql:ON DELETE CASCADE → RESTRICT
+- docker-compose.dev.yml 用 named volume(Windows NTFS bind mount fsync 慢)
+- docker/initdb/01-create-test-db.sql 自动建 ideabox_test
+- pom.xml 删 testcontainers 死依赖
+- application.yml jackson.default-property-inclusion=always 锁 Result 契约
+- application.yml flyway.baseline-on-migrate=false 默认(dev 显式 true)
+
+### Migrations
+
+- `V3__alter_foreign_keys_restrict.sql` — t_project / t_idea 外键改 RESTRICT
+
+### Pitfalls Logged
+
+新增踩坑沉淀到 piao-workflow SKILL.md 阶段 3 框架避坑(MyBatis-Plus / Druid wall 等已沉淀,见 v0.1.0 段)。
+此次 hotfix 教训沉淀到 piao-workflow 质量门规则:**skill 跑不动必须附实际尝试 stderr 证据**。
+
+---
+
 ## [v0.1.0] — 2026-05-28 · 后端脚手架 PR-1 — [docs/01-想法记录MVP/PR-1/](docs/01-想法记录MVP/PR-1/)
 
 后端 MVP 第一波,前端 PR-2/PR-3 解锁。本 PR 不部署生产,仅本地 dev 可用。
