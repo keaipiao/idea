@@ -88,6 +88,7 @@ public class IdeaService {
         if (content == null && completed == null && sortOrder == null) {
             return i;  // 无变更字段不 churn updated_at
         }
+        Long expectedProjectId = i.getProjectId();
         if (content != null) {
             i.setContent(content);
         }
@@ -103,15 +104,26 @@ public class IdeaService {
         if (sortOrder != null) {
             i.setSortOrder(sortOrder);
         }
-        ideaMapper.updateById(i);
+        // 钉 project_id 防 TOCTOU:SELECT 后并发事务把 idea 改到别人项目的窗口期
+        int affected = ideaMapper.update(i, new LambdaUpdateWrapper<Idea>()
+                .eq(Idea::getId, ideaId)
+                .eq(Idea::getProjectId, expectedProjectId));
+        if (affected == 0) {
+            throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "想法不存在");
+        }
         return i;
     }
 
     @Transactional
     public void delete(Long ideaId, Long userId) {
-        // owner 校验经 project 间接完成,此处用主键删除即可
-        getOwnedById(ideaId, userId);
-        ideaMapper.deleteById(ideaId);
+        Idea i = getOwnedById(ideaId, userId);
+        // 钉 project_id 防 TOCTOU(与 update 对称)
+        int affected = ideaMapper.delete(new LambdaQueryWrapper<Idea>()
+                .eq(Idea::getId, ideaId)
+                .eq(Idea::getProjectId, i.getProjectId()));
+        if (affected == 0) {
+            throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "想法不存在");
+        }
     }
 
     @Transactional
