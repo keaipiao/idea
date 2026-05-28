@@ -1,6 +1,7 @@
 package com.ideabox.api.idea.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ideabox.api.common.BusinessException;
@@ -84,6 +85,9 @@ public class IdeaService {
     @Transactional
     public Idea update(Long ideaId, Long userId, String content, Boolean completed, Integer sortOrder) {
         Idea i = getOwnedById(ideaId, userId);
+        if (content == null && completed == null && sortOrder == null) {
+            return i;  // 无变更字段不 churn updated_at
+        }
         if (content != null) {
             i.setContent(content);
         }
@@ -105,6 +109,7 @@ public class IdeaService {
 
     @Transactional
     public void delete(Long ideaId, Long userId) {
+        // owner 校验经 project 间接完成,此处用主键删除即可
         getOwnedById(ideaId, userId);
         ideaMapper.deleteById(ideaId);
     }
@@ -122,14 +127,15 @@ public class IdeaService {
         Set<Long> seen = new HashSet<>();
         for (Long iid : ids) {
             if (!seen.add(iid)) {
-                throw new BusinessException(ResultCode.PARAM_INVALID, "ids 包含重复值: " + iid);
+                throw new BusinessException(ResultCode.PARAM_INVALID, "ids 包含重复值");
             }
             Idea idea = byId.get(iid);
+            // 错误消息不带 id 防 IDOR;404/403 分档与单 CRUD 一致
             if (idea == null) {
-                throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "想法不存在: " + iid);
+                throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "想法不存在");
             }
             if (!idea.getProjectId().equals(projectId)) {
-                throw new BusinessException(ResultCode.FORBIDDEN_OWNER, "想法不属于此项目: " + iid);
+                throw new BusinessException(ResultCode.FORBIDDEN_OWNER, "无权访问该想法");
             }
         }
 

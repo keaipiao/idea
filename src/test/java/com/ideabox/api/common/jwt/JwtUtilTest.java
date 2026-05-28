@@ -23,6 +23,8 @@ class JwtUtilTest {
         props.setExpirationHours(1);
         props.setIssuer("test-issuer");
         jwtUtil = new JwtUtil(props);
+        // 手动触发 @PostConstruct(单测无 Spring container)
+        jwtUtil.init();
     }
 
     @Test
@@ -67,6 +69,7 @@ class JwtUtilTest {
         other.setExpirationHours(1);
         other.setIssuer("test-issuer");
         JwtUtil otherUtil = new JwtUtil(other);
+        otherUtil.init();
 
         String foreignToken = otherUtil.issue(1L);
         assertThatThrownBy(() -> jwtUtil.parseUserId(foreignToken))
@@ -81,6 +84,7 @@ class JwtUtilTest {
         other.setExpirationHours(1);
         other.setIssuer("foreign-issuer");
         JwtUtil otherUtil = new JwtUtil(other);
+        otherUtil.init();
 
         String foreignToken = otherUtil.issue(1L);
         assertThatThrownBy(() -> jwtUtil.parseUserId(foreignToken))

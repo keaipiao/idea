@@ -15,14 +15,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-ideabox}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ideabox_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-ideabox}
-      # 让 PG 用 UTF-8 + 不要 force locale(否则 Windows 上可能挂)
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
       TZ: Asia/Shanghai
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      # 数据持久化到项目目录(已 gitignored)
-      - ./data/pgdata:/var/lib/postgresql/data
+      # 用 named volume 而非 bind mount。Windows NTFS bind mount 让 PG fsync 性能极差
+      # (WSL2 + 9p 协议跨主机文件系统,fsync 比 Linux 慢 10-100x)
+      - ideabox_pgdata:/var/lib/postgresql/data
+      # 初始化脚本:自动建 ideabox_test database 供集成测试用
+      - ./docker/initdb:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ideabox} -d ${POSTGRES_DB:-ideabox}"]
       interval: 5s
@@ -30,3 +32,7 @@ services:
       retries: 10
       start_period: 5s
     restart: unless-stopped
+
+volumes:
+  ideabox_pgdata:
+    name: ideabox_pgdata

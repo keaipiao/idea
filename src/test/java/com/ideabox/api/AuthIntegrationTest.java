@@ -86,11 +86,11 @@ class AuthIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    @DisplayName("微信小程序登录占位返 501")
-    void wxMpLoginReturns501() throws Exception {
+    @DisplayName("微信小程序登录占位返 200 + code=501000(走业务码契约,不返 HTTP 501)")
+    void wxMpLoginReturnsBusinessCode() throws Exception {
         mockMvc.perform(post("/api/auth/login/mp")
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isNotImplemented())
+                .andExpect(status().isOk())  // HTTP 200,前端解析 Result.code
                 .andExpect(jsonPath("$.code").value(ResultCode.NOT_IMPLEMENTED.getCode()))
                 .andExpect(jsonPath("$.message", containsString("PR-4")));
     }

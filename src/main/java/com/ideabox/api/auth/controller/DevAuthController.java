@@ -4,8 +4,10 @@ import com.ideabox.api.auth.dto.DevLoginRequest;
 import com.ideabox.api.auth.dto.LoginResponse;
 import com.ideabox.api.common.Result;
 import com.ideabox.api.common.jwt.JwtUtil;
+import com.ideabox.api.user.dto.UserVO;
 import com.ideabox.api.user.entity.User;
 import com.ideabox.api.user.service.UserService;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
@@ -32,15 +34,17 @@ public class DevAuthController {
      * 开发期登录。拿种子 dev 用户(默认 userId=1)的 JWT,绕过微信。
      */
     @PostMapping("/dev")
-    public Result<LoginResponse> devLogin(@RequestBody(required = false) DevLoginRequest req) {
+    public Result<LoginResponse> devLogin(@Valid @RequestBody(required = false) DevLoginRequest req) {
+        // 默认 userId=1(种子 dev 用户)。req 校验保证非空 userId 必 > 0
         Long userId = (req != null && req.getUserId() != null) ? req.getUserId() : 1L;
+        // 先校验用户存在再签 token,避免给不存在 user 签出有效 token
         User user = userService.getById(userId);
         Instant issuedAt = Instant.now();
         String token = jwtUtil.issue(userId);
         return Result.ok(LoginResponse.builder()
                 .token(token)
                 .expiresAt(jwtUtil.expirationOf(issuedAt))
-                .user(user)
+                .user(UserVO.fromEntity(user))
                 .build());
     }
 }

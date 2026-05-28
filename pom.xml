@@ -30,7 +30,6 @@
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <druid.version>1.2.25</druid.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <testcontainers.version>1.21.3</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -121,18 +120,11 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
+        <!--
+            Testcontainers 依赖已移除:Windows + Docker Desktop WSL2 backend 探测失败
+            (踩坑 D2)。改用本机 docker-compose dev PG + 独立 ideabox_test database +
+            @Transactional rollback。后续 Linux CI 上想跑 Testcontainers 时再加回来。
+        -->
     </dependencies>
 
     <build>

@@ -1,6 +1,7 @@
 package com.ideabox.api.project.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ideabox.api.common.BusinessException;
@@ -72,20 +73,36 @@ public class ProjectService {
     @Transactional
     public Project update(Long projectId, Long userId, String name, Integer sortOrder) {
         Project p = getOwnedById(projectId, userId);
+        if (name == null && sortOrder == null) {
+            // 无变更字段直接返回,不触发 updated_at churn
+            return p;
+        }
         if (name != null) {
             p.setName(name);
         }
         if (sortOrder != null) {
             p.setSortOrder(sortOrder);
         }
-        projectMapper.updateById(p);
+        // WHERE 钉死 user_id 防 TOCTOU 越权写。受影响行 0 抛 RESOURCE_NOT_FOUND
+        int affected = projectMapper.update(p, new LambdaUpdateWrapper<Project>()
+                .eq(Project::getId, projectId)
+                .eq(Project::getUserId, userId));
+        if (affected == 0) {
+            throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "项目不存在");
+        }
         return p;
     }
 
     @Transactional
     public void delete(Long projectId, Long userId) {
         getOwnedById(projectId, userId);
-        projectMapper.deleteById(projectId);
+        // WHERE 钉死 user_id 防 TOCTOU
+        int affected = projectMapper.delete(new LambdaQueryWrapper<Project>()
+                .eq(Project::getId, projectId)
+                .eq(Project::getUserId, userId));
+        if (affected == 0) {
+            throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "项目不存在");
+        }
     }
 
     /**
@@ -103,17 +120,17 @@ public class ProjectService {
         Map<Long, Project> byId = projects.stream().collect(Collectors.toMap(Project::getId, Function.identity()));
 
         Set<Long> seen = new HashSet<>();
-        for (int i = 0; i < ids.size(); i++) {
-            Long pid = ids.get(i);
+        for (Long pid : ids) {
             if (!seen.add(pid)) {
-                throw new BusinessException(ResultCode.PARAM_INVALID, "ids 包含重复值: " + pid);
+                throw new BusinessException(ResultCode.PARAM_INVALID, "ids 包含重复值");
             }
             Project p = byId.get(pid);
+            // 与单 CRUD 错误码一致(404/403 分档),但错误消息不带 id 防 IDOR 枚举
             if (p == null) {
-                throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "项目不存在: " + pid);
+                throw new BusinessException(ResultCode.RESOURCE_NOT_FOUND, "项目不存在");
             }
             if (!p.getUserId().equals(userId)) {
-                throw new BusinessException(ResultCode.FORBIDDEN_OWNER, "项目不属于当前用户: " + pid);
+                throw new BusinessException(ResultCode.FORBIDDEN_OWNER, "无权访问该项目");
             }
         }
 
