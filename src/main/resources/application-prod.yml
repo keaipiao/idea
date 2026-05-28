@@ -1,0 +1,15 @@
+# prod profile - 占位,PR-1 不实际上 prod。后续 PR 完善。
+
+spring:
+  datasource:
+    druid:
+      # prod 关闭 Druid 监控页(避免暴露 SQL)
+      stat-view-servlet:
+        enabled: false
+      web-stat-filter:
+        enabled: false
+
+logging:
+  level:
+    com.ideabox: INFO
+    org.mybatis: WARN

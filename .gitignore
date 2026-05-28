@@ -1,0 +1,63 @@
+# ========== Claude Code 本机设置 ==========
+.claude/
+
+# ========== Maven / Java ==========
+target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+
+# ========== IDE ==========
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.project
+.classpath
+.settings/
+.factorypath
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# ========== Logs ==========
+logs/
+*.log
+spring.log
+
+# ========== 环境变量 / 秘钥 ==========
+.env
+.env.local
+.env.dev
+.env.prod
+*.pem
+*.key
+secret*
+
+# ========== docker 数据卷 ==========
+data/
+docker/data/
+
+# ========== OS ==========
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========== Node(后续 PR-3 用)==========
+node_modules/
+.next/
+out/
+.turbo/
+
+# ========== 微信开发者工具(后续 PR-2 用)==========
+miniprogram_npm/
+project.private.config.json

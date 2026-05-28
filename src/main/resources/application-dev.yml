@@ -1,0 +1,31 @@
+# dev profile - 本地开发环境
+
+spring:
+  # Druid 监控开关(dev only)
+  datasource:
+    druid:
+      stat-view-servlet:
+        enabled: true
+        login-username: dev
+        login-password: dev
+        # 仅允许 localhost 访问 Druid 监控页(127.0.0.1 / ::1)
+        allow: 127.0.0.1,::1
+        deny: ""
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 1000
+        wall:
+          enabled: true
+
+# dev 期 SQL 详细日志
+logging:
+  level:
+    com.ideabox: DEBUG
+    org.mybatis: DEBUG
+    com.baomidou.mybatisplus: DEBUG

@@ -1,0 +1,32 @@
+# IdeaBox 本地开发环境(只起 PostgreSQL,backend 用 mvn spring-boot:run 本机跑)
+#
+# 启动:
+#   docker compose -f docker-compose.dev.yml --env-file .env up -d
+# 停止:
+#   docker compose -f docker-compose.dev.yml down
+# 完全清空(连数据卷):
+#   docker compose -f docker-compose.dev.yml down -v
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ideabox-postgres-dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ideabox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ideabox_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ideabox}
+      # 让 PG 用 UTF-8 + 不要 force locale(否则 Windows 上可能挂)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      TZ: Asia/Shanghai
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # 数据持久化到项目目录(已 gitignored)
+      - ./data/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ideabox} -d ${POSTGRES_DB:-ideabox}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
