@@ -21,7 +21,14 @@ public class Idea {
     private Long projectId;
     private String content;
 
-    /** 完成时间。NULL=未完成,有值=已完成 */
+    /**
+     * 完成时间。NULL=未完成,有值=已完成。
+     * <p>
+     * 必须 {@code updateStrategy = IGNORED},否则 MyBatis-Plus 默认 NOT_NULL 策略
+     * 让"取消完成"操作丢失(set null 被静默跳过,数据库残留旧时间)。
+     */
+    @com.baomidou.mybatisplus.annotation.TableField(
+            updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.IGNORED)
     private LocalDateTime completedAt;
 
     private Integer sortOrder;

@@ -21,7 +21,11 @@ spring:
           log-slow-sql: true
           slow-sql-millis: 1000
         wall:
-          enabled: true
+          # ⚠️ 关 wall filter:它会误判 PostgreSQL 的 partial unique index
+          # (CREATE UNIQUE INDEX ... WHERE col IS NOT NULL)为 SQL 注入,导致 Flyway 失败。
+          # MyBatis-Plus 全部参数化已免疫普通注入,wall 在 MVP 个人项目里是多余的。
+          # 详见 docs/_开发踩坑记录.md "Druid wall + Flyway partial index"
+          enabled: false
 
 # dev 期 SQL 详细日志
 logging:
