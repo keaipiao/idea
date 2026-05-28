@@ -4,6 +4,38 @@
 
 ---
 
+## [v0.2.0] — 2026-05-28 · PR-3 网页端 + 拖拽 + 动画系统 + nginx 反代 — docs/01-想法记录MVP/PR-3/
+
+详细变更见 [PR-3/04-部署日志.md](docs/01-想法记录MVP/PR-3/04-部署日志.md) + [PR-3/05-迭代日志.md](docs/01-想法记录MVP/PR-3/05-迭代日志.md)。
+
+### Added
+
+- 网页端 Next.js 16 + TS + Tailwind 4 完整实现(`web/` 目录,20 文件 + 39 单测)
+- AuthGate + lib/auth.ts(AUTH_MODE 三档 dev/wechat/none + idle 30min auto clear + reauth singleton 防并发 401 风暴)
+- API 客户端 lib/api.ts(401 一次性 re-login + same-origin/include 自适应 credentials)
+- 数据 hooks useProjects / useIdeas(SWR cache + 乐观更新 + revalidateOnFocus)
+- 12 个 UI 组件:ProjectSidebar / IdeaInput / IdeaItem / IdeaList / SortableIdeaList / EditIdeaModal / RenameModal / ConfirmModal / ToastProvider / ModalRoot / EmptyState / Skeleton
+- 拖拽 @dnd-kit:整行可拖 + 立即本地顺序 + debounce 300ms API
+- 动画 framer-motion:Toast 滑入 / Modal 弹入 / SVG 浮动 / 完成对勾 backOut
+- 后端 Dockerfile + web/Dockerfile + docker-compose.prod.yml(4 services)+ nginx 反代 + CSP header
+
+### Changed
+
+- **PR-1 hotfix**:CorsConfig bean 名改为 `corsConfigurationSource`(Spring Security CorsConfigurer 优先按 name 查找),`allowedOriginPatterns` 支持任意 dev 端口(原 5432/5173 写死)
+- PostgreSQL dev 端口 5432 → **25432**(避与本机其他实例冲突),5 处同步:`docker-compose.dev.yml` / `.env.example` / `application.yml` / `IntegrationTestBase.java`
+- Redis 占位端口 26380(未引入,文档约定)
+- VERSION:v0.1.0 → v0.2.0
+
+### Migrations
+
+无(纯前端 + 配置变更)
+
+### Pitfalls Logged
+
+- PR-3/04-部署日志 § 5 共 6 条:CorsConfig bean name / 端口冲突 / dnd-kit×framer-motion 冲突 / debounce 时机 / jsdom 异步动画 / mvn 跳编译
+
+---
+
 ## [v0.1.1] — 2026-05-28 · PR-1 hotfix(/review 暴露 P0/P1 系统修复)
 
 阶段 7 用户 call out 后真跑 `/review` skill,4 个 specialist 暴露 7 P0 + 11 P1。原"0 P0/P1"自评是误报(未实际尝试 skill 即跳过)。
